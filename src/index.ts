@@ -79,9 +79,15 @@ async function main(): Promise<void> {
   
   try {
     logger.info('Starting Model US Discord Bot...');
+    console.log('Environment check:');
+    console.log('- NODE_ENV:', process.env.NODE_ENV);
+    console.log('- DATABASE_PATH:', process.env.DATABASE_PATH);
+    console.log('- DISCORD_TOKEN exists:', !!process.env.DISCORD_TOKEN);
+    console.log('- CLIENT_ID exists:', !!process.env.CLIENT_ID);
     
     // Create health check server for Render
     if (process.env.NODE_ENV === 'production') {
+      console.log('Setting up health check server...');
       const app = express();
       const port = process.env.PORT || 3000;
       
@@ -95,14 +101,17 @@ async function main(): Promise<void> {
       
       app.listen(port, () => {
         logger.info(`Health check server running on port ${port}`);
+        console.log(`Health check server running on port ${port}`);
       });
     }
     
     // Create bot client
+    console.log('Creating bot client...');
     const client = new BotClient(botConfig);
     
     // Register all commands
     logger.info('Registering commands...');
+    console.log('Registering commands...');
     
     // Admin commands
     client.addCommand(new AdminNationEditCommand());
@@ -149,9 +158,12 @@ async function main(): Promise<void> {
     client.addCommand(new AddDescCommand());
     
     logger.info(`Registered ${client.commands.size} commands`);
+    console.log(`Registered ${client.commands.size} commands`);
     
     // Start the bot
+    console.log('Starting bot client...');
     await client.start();
+    console.log('Bot started successfully!');
     
     // Handle graceful shutdown
     const shutdown = async (signal: string): Promise<void> => {
@@ -181,6 +193,11 @@ async function main(): Promise<void> {
     
   } catch (error) {
     logger.error('Failed to start bot:', { error: error as Error });
+    console.error('Detailed error:', error);
+    if (error instanceof Error) {
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     process.exit(1);
   }
 }
