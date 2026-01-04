@@ -2,11 +2,14 @@ services:
   - type: web
     name: model-us-discord-bot
     env: node
+    runtime: node
     buildCommand: npm install && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_VERSION
+        value: "20"
     disk:
       name: bot-data
       mountPath: /opt/render/project/src/data
