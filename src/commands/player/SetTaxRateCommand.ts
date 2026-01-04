@@ -128,7 +128,7 @@ export class SetTaxRateCommand implements Command {
 
       // Send notification to admin channel
       try {
-        const adminChannelId = '1457229969481531463';
+        const adminChannelId = process.env.ADMIN_NOTIFICATION_CHANNEL_ID || '1457229969481531463';
         const adminChannel = await interaction.client.channels.fetch(adminChannelId);
         
         if (adminChannel && adminChannel.isTextBased() && 'send' in adminChannel) {
