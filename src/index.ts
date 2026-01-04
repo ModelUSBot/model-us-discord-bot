@@ -33,6 +33,8 @@ import { AllianceRequestCommand } from './commands/player/AllianceRequestCommand
 import { AllianceRespondCommand } from './commands/player/AllianceRespondCommand';
 import { AlliancesCommand } from './commands/player/AlliancesCommand';
 import { UnallyCommand } from './commands/player/UnallyCommand';
+import { SetFlagCommand } from './commands/player/SetFlag';
+import { SetCapitalCommand } from './commands/player/SetCapital';
 import { SetTaxRateCommand } from './commands/player/SetTaxRateCommand';
 import { SetPrefixCommand } from './commands/player/SetPrefixCommand';
 import { AddLawCommand } from './commands/player/AddLawCommand';
@@ -133,6 +135,8 @@ async function main(): Promise<void> {
     client.addCommand(new AllianceRespondCommand());
     client.addCommand(new AlliancesCommand());
     client.addCommand(new UnallyCommand());
+    client.addCommand(new SetFlagCommand());
+    client.addCommand(new SetCapitalCommand());
     client.addCommand(new SetTaxRateCommand());
     client.addCommand(new SetPrefixCommand());
     client.addCommand(new AddLawCommand());
