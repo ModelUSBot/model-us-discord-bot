@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 import { DatabaseConfig, NationStats, War, UserLink, UserActivity, AdminAction, AuditLogEntry, Law, LawWithTags, Tag } from '../types';
 import { Logger } from '../utils/Logger';
+import { mkdirSync } from 'fs';
+import { dirname } from 'path';
 
 export class DatabaseManager {
   private db: Database.Database;
@@ -8,6 +10,17 @@ export class DatabaseManager {
 
   constructor(config: DatabaseConfig, logger: Logger) {
     this.logger = logger;
+    
+    // Ensure the database directory exists
+    const dbDir = dirname(config.path);
+    try {
+      mkdirSync(dbDir, { recursive: true });
+      this.logger.info(`Database directory ensured: ${dbDir}`);
+    } catch (error) {
+      this.logger.error(`Failed to create database directory: ${dbDir}`, { error: error as Error });
+      throw error;
+    }
+    
     this.db = new Database(config.path);
     
     // Enable WAL mode for better performance
