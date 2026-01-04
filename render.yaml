@@ -3,7 +3,7 @@ services:
     name: model-us-discord-bot
     env: node
     runtime: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci
     startCommand: npm start
     envVars:
       - key: NODE_ENV
