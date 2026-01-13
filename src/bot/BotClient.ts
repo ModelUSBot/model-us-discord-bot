@@ -40,7 +40,7 @@ export class BotClient extends Client {
     this.commands = new Collection();
     this.database = new DatabaseManager(config.database, this.logger);
     this.permissions = new PermissionManager(config.adminUserIds, this.logger);
-    this.disasterGenerator = new DisasterGenerator(this.logger);
+    this.disasterGenerator = new DisasterGenerator(this.logger, this.database);
 
     this.setupEventHandlers();
   }

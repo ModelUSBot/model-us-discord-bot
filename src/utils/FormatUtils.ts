@@ -184,3 +184,26 @@ export function formatTimeRemaining(milliseconds: number): string {
   
   return `${hours} hour${hours === 1 ? '' : 's'} and ${minutes} minute${minutes === 1 ? '' : 's'}`;
 }
+
+/**
+ * Format time remaining with Discord timestamp for better timezone handling
+ * @param futureDate The future date when the cooldown expires
+ * @returns Discord timestamp showing relative time
+ */
+export function formatCooldownTime(futureDate: Date): string {
+  const timestamp = Math.floor(futureDate.getTime() / 1000);
+  return `<t:${timestamp}:R>`;
+}
+
+/**
+ * Create a timezone-aware Discord timestamp from a database datetime string
+ * @param dateString Database datetime string (assumed to be UTC)
+ * @param style Discord timestamp style (default: 'R' for relative)
+ * @returns Discord timestamp that displays correctly in user's timezone
+ */
+export function formatDatabaseTimestamp(dateString: string, style: 'f' | 'F' | 'd' | 'D' | 't' | 'T' | 'R' = 'R'): string {
+  // Parse the database date (SQLite CURRENT_TIMESTAMP is in UTC)
+  const date = new Date(dateString + 'Z'); // Add 'Z' to ensure it's parsed as UTC
+  const timestamp = Math.floor(date.getTime() / 1000);
+  return `<t:${timestamp}:${style}>`;
+}

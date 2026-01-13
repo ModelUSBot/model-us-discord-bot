@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder, MessageFlags, AutocompleteInteraction } from 'discord.js';
 import { Command } from '../../types';
 import { DatabaseManager } from '../../database/DatabaseManager';
 import { Logger } from '../../utils/Logger';
@@ -9,20 +9,9 @@ export class SetPrefixCommand implements Command {
     .setDescription('Add a prefix to your nation name (e.g., Republic of, Empire of)')
     .addStringOption(option =>
       option.setName('prefix')
-        .setDescription('Prefix to add to your nation name')
+        .setDescription('Prefix to add to your nation name (type to search available options)')
         .setRequired(true)
-        .addChoices(
-          { name: 'Republic of', value: 'Republic of' },
-          { name: 'Empire of', value: 'Empire of' },
-          { name: 'Kingdom of', value: 'Kingdom of' },
-          { name: 'Federation of', value: 'Federation of' },
-          { name: 'Commonwealth of', value: 'Commonwealth of' },
-          { name: 'United States of', value: 'United States of' },
-          { name: 'Principality of', value: 'Principality of' },
-          { name: 'Duchy of', value: 'Duchy of' },
-          { name: 'Remove Prefix', value: 'REMOVE' }
-        )
-    );
+        .setAutocomplete(true));
 
   public async execute(
     interaction: ChatInputCommandInteraction,
@@ -30,6 +19,31 @@ export class SetPrefixCommand implements Command {
     logger: Logger
   ): Promise<void> {
     const prefix = interaction.options.getString('prefix', true);
+
+    // Validate prefix
+    const allPrefixes = [
+      'Republic of', 'Empire of', 'Kingdom of', 'Federation of', 'Commonwealth of',
+      'United States of', 'Principality of', 'Duchy of', 'State of', 'Province of',
+      'Territory of', 'Confederation of', 'Union of', 'Alliance of', 'League of',
+      'Free State of', 'Democratic Republic of', 'Socialist Republic of', 
+      'People\'s Republic of', 'Islamic Republic of', 'Sultanate of', 'Emirate of',
+      'Grand Duchy of', 'Dominion of', 'Archduchy of', 'Margraviate of', 'Electorate of',
+      'Palatinate of', 'County of', 'Barony of', 'Viscountcy of', 'Earldom of',
+      'Marquisate of', 'Dukedom of', 'Viceroyalty of', 'Protectorate of', 'Mandate of',
+      'Governorate of', 'Autonomous Region of', 'Crown Colony of', 'Associated State of',
+      'City-State of', 'Sacred Kingdom of', 'Holy Empire of', 'Theocracy of',
+      'Revolutionary Republic of', 'Military Junta of', 'Technocracy of', 'Meritocracy of',
+      'Trade Federation of', 'Commercial Republic of', 'Corporate State of', 'Commune of',
+      'Collective of', 'Cooperative of', 'Hegemony of', 'Suzerainty of', 'REMOVE'
+    ];
+
+    if (prefix !== 'REMOVE' && !allPrefixes.includes(prefix)) {
+      await interaction.reply({
+        content: '❌ Invalid prefix. Please select from the autocomplete options.',
+        flags: MessageFlags.Ephemeral
+      });
+      return;
+    }
 
     try {
       // Check if user has a linked nation
@@ -162,6 +176,152 @@ export class SetPrefixCommand implements Command {
         }
       } catch (replyError) {
         logger.error('Failed to send error response:', { error: replyError as Error });
+      }
+    }
+  }
+
+  public async autocomplete(
+    interaction: AutocompleteInteraction,
+    dbManager: DatabaseManager,
+    logger: Logger
+  ): Promise<void> {
+    const focusedValue = interaction.options.getFocused().toLowerCase();
+    
+    // Comprehensive list of prefixes
+    const allPrefixes = [
+      'Republic of',
+      'Empire of',
+      'Kingdom of',
+      'Federation of',
+      'Commonwealth of',
+      'United States of',
+      'Principality of',
+      'Duchy of',
+      'State of',
+      'Province of',
+      'Territory of',
+      'Confederation of',
+      'Union of',
+      'Alliance of',
+      'League of',
+      'Free State of',
+      'Democratic Republic of',
+      'Socialist Republic of',
+      'People\'s Republic of',
+      'Islamic Republic of',
+      'Sultanate of',
+      'Emirate of',
+      'Grand Duchy of',
+      'Dominion of',
+      'Archduchy of',
+      'Margraviate of',
+      'Electorate of',
+      'Palatinate of',
+      'Landgraviate of',
+      'Burgraviate of',
+      'County of',
+      'Barony of',
+      'Viscountcy of',
+      'Earldom of',
+      'Marquisate of',
+      'Dukedom of',
+      'Viceroyalty of',
+      'Protectorate of',
+      'Mandate of',
+      'Governorate of',
+      'Autonomous Region of',
+      'Special Administrative Region of',
+      'Crown Colony of',
+      'Overseas Territory of',
+      'Associated State of',
+      'Client State of',
+      'Puppet State of',
+      'Satellite State of',
+      'Buffer State of',
+      'City-State of',
+      'Nation-State of',
+      'Tribal Federation of',
+      'Tribal Council of',
+      'Chiefdom of',
+      'Clan Territory of',
+      'Sacred Kingdom of',
+      'Holy Empire of',
+      'Blessed Republic of',
+      'Divine Monarchy of',
+      'Theocracy of',
+      'Papal State of',
+      'Ecclesiastical State of',
+      'Monastic Republic of',
+      'Revolutionary Republic of',
+      'Provisional Government of',
+      'Transitional Authority of',
+      'Military Junta of',
+      'Occupied Territory of',
+      'Liberated Zone of',
+      'Autonomous Community of',
+      'Federal District of',
+      'Capital Territory of',
+      'Metropolitan Area of',
+      'Urban Agglomeration of',
+      'Megalopolis of',
+      'Conurbation of',
+      'Economic Zone of',
+      'Trade Federation of',
+      'Commercial Republic of',
+      'Merchant State of',
+      'Banking Republic of',
+      'Corporate State of',
+      'Technocracy of',
+      'Meritocracy of',
+      'Plutocracy of',
+      'Oligarchy of',
+      'Aristocracy of',
+      'Gerontocracy of',
+      'Stratocracy of',
+      'Kritarchy of',
+      'Nomocracy of',
+      'Timocracy of',
+      'Kleptocracy of',
+      'Kakistocracy of',
+      'Mobocracy of',
+      'Ochlocracy of',
+      'Polyarchy of',
+      'Synarchy of',
+      'Anarchy of',
+      'Commune of',
+      'Collective of',
+      'Cooperative of',
+      'Syndicate of',
+      'Consortium of',
+      'Cartel of',
+      'Monopoly of',
+      'Hegemony of',
+      'Suzerainty of',
+      'Overlordship of',
+      'Remove Prefix'
+    ];
+
+    try {
+      const filtered = allPrefixes
+        .filter(prefix => prefix.toLowerCase().includes(focusedValue))
+        .slice(0, 25)
+        .map(prefix => ({
+          name: prefix,
+          value: prefix === 'Remove Prefix' ? 'REMOVE' : prefix
+        }));
+
+      await interaction.respond(filtered);
+    } catch (error) {
+      logger.error('Error in prefix autocomplete:', {
+        command: 'set-prefix',
+        user: interaction.user.id,
+        error: error as Error
+      });
+      
+      try {
+        await interaction.respond([]);
+      } catch (respondError) {
+        // Ignore respond errors in autocomplete
       }
     }
   }

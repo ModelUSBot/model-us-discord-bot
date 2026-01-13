@@ -102,6 +102,30 @@ export class PermissionManager {
   }
 
   /**
+   * Check if user has leadership permissions (President or Vice President)
+   */
+  public hasLeadershipPermissions(interaction: ChatInputCommandInteraction, dbManager: any): boolean {
+    const userLink = dbManager.getUserLink(interaction.user.id);
+    if (!userLink) {
+      return false;
+    }
+
+    return userLink.role === 'president' || userLink.role === 'vice_president';
+  }
+
+  /**
+   * Check if user is admin or has leadership permissions
+   */
+  public async isAdminOrLeader(interaction: ChatInputCommandInteraction, dbManager: any): Promise<boolean> {
+    const isAdmin = await this.isAdmin(interaction);
+    if (isAdmin) {
+      return true;
+    }
+
+    return this.hasLeadershipPermissions(interaction, dbManager);
+  }
+
+  /**
    * Check if user has specific Discord permission
    */
   public hasPermission(interaction: ChatInputCommandInteraction, permission: bigint): boolean {

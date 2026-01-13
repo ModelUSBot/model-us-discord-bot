@@ -95,6 +95,51 @@ export class AllianceRespondCommand implements Command {
 
       await interaction.reply({ embeds: [embed] });
 
+      // Send admin notification
+      try {
+        const adminChannelId = '1457229969481531463';
+        const adminRoleId = '1456867369111519335';
+        const adminChannel = await interaction.client.channels.fetch(adminChannelId);
+        
+        if (adminChannel && adminChannel.isTextBased() && 'send' in adminChannel) {
+          const guildName = interaction.guild?.name || 'Unknown Server';
+          const channelName = interaction.channel?.type === 0 ? `#${(interaction.channel as any).name}` : 'DM';
+          const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+          
+          const adminEmbed = new EmbedBuilder()
+            .setColor(isAccepted ? 0x00ff00 : 0xff0000)
+            .setTitle(isAccepted ? '✅ Alliance Request Accepted' : '❌ Alliance Request Declined')
+            .setDescription(`An alliance request has been ${response}ed.`)
+            .addFields(
+              { name: '🏛️ Requesting Nation', value: requestingNation, inline: true },
+              { name: '🏛️ Responding Nation', value: myNation, inline: true },
+              { name: '👤 Responded By', value: `<@${interaction.user.id}> (${interaction.user.tag})`, inline: true },
+              { name: '👤 Original Requester', value: `<@${allianceRequest.requested_by}>`, inline: true },
+              { name: '📅 Final Status', value: isAccepted ? 'Active Alliance' : 'Declined', inline: true },
+              { name: '🌍 Server', value: guildName, inline: true },
+              { name: '📍 Channel', value: channelName, inline: true },
+              { name: '⏰ Time (EST)', value: timestamp, inline: true },
+              { name: '🆔 Responder ID', value: interaction.user.id, inline: true },
+              { name: '🆔 Requester ID', value: allianceRequest.requested_by, inline: true },
+              { name: '🆔 Guild ID', value: interaction.guild?.id || 'N/A', inline: true },
+              { name: '🆔 Channel ID', value: interaction.channel?.id || 'N/A', inline: true }
+            )
+            .setFooter({ 
+              text: isAccepted 
+                ? 'Alliance is now active - both parties have been notified' 
+                : 'Alliance request declined - requester has been notified' 
+            })
+            .setTimestamp();
+
+          await adminChannel.send({ 
+            content: `<@&${adminRoleId}> Alliance request ${response}ed!`,
+            embeds: [adminEmbed] 
+          });
+        }
+      } catch (error) {
+        logger.warn('Failed to send admin notification for alliance response:', { error: error as Error });
+      }
+
       // Notify the requesting user
       try {
         const requestingUser = await interaction.client.users.fetch(allianceRequest.requested_by);

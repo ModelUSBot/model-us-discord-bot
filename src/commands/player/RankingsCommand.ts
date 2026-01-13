@@ -18,7 +18,9 @@ export class RankingsCommand implements Command {
           { name: 'Stability', value: 'stability' },
           { name: 'Tax Rate', value: 'tax_rate' },
           { name: 'GDP per Capita', value: 'gdp_per_capita' },
-          { name: 'Military Readiness', value: 'military_readiness' }
+          { name: 'Air Strength', value: 'air_strength' },
+          { name: 'Naval Strength', value: 'naval_strength' },
+          { name: 'Ground Strength', value: 'ground_strength' }
         )
     )
     .addIntegerOption(option =>
@@ -53,7 +55,9 @@ export class RankingsCommand implements Command {
         stability: 'Stability (%)',
         tax_rate: 'Tax Rate (%)',
         gdp_per_capita: 'GDP per Capita',
-        military_readiness: 'Military Readiness'
+        air_strength: 'Air Strength',
+        naval_strength: 'Naval Strength',
+        ground_strength: 'Ground Strength'
       };
 
       const categoryEmojis = {
@@ -62,7 +66,9 @@ export class RankingsCommand implements Command {
         stability: '📊',
         tax_rate: '💸',
         gdp_per_capita: '💵',
-        military_readiness: '🎖️'
+        air_strength: '✈️',
+        naval_strength: '🚢',
+        ground_strength: '🪖'
       };
 
       const formatValue = (nation: any, cat: string) => {
@@ -78,15 +84,13 @@ export class RankingsCommand implements Command {
           case 'tax_rate':
             return `${nation.taxRate.toFixed(1)}%`;
           case 'gdp_per_capita':
-            return `$${nation.gdpPerCapita.toFixed(2)}`;
-          case 'military_readiness':
-            const readiness = nation.militaryReadiness || 5.0;
-            const readinessDescriptions = [
-              '🕊️ Peaceful', '🟢 Minimal', '🟡 Low', '🟠 Moderate', '🔴 Elevated',
-              '⚠️ High', '🚨 Critical', '💥 Maximum', '⚔️ War Footing', '🔥 Total War', '☢️ DEFCON 1'
-            ];
-            const desc = readinessDescriptions[Math.floor(readiness)] || `Level ${readiness}`;
-            return `${readiness}/10 - ${desc}`;
+            return `${nation.gdpPerCapita.toFixed(2)}`;
+          case 'air_strength':
+            return nation.airStrength ? nation.airStrength.toLocaleString() : '0';
+          case 'naval_strength':
+            return nation.navalStrength ? nation.navalStrength.toLocaleString() : '0';
+          case 'ground_strength':
+            return nation.groundStrength ? nation.groundStrength.toLocaleString() : '0';
           default:
             return 'N/A';
         }

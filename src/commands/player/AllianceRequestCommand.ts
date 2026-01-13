@@ -113,6 +113,49 @@ export class AllianceRequestCommand implements Command {
 
       await interaction.reply({ embeds: [embed] });
 
+      // Send admin notification
+      try {
+        const adminChannelId = '1457229969481531463';
+        const adminRoleId = '1456867369111519335';
+        const adminChannel = await interaction.client.channels.fetch(adminChannelId);
+        
+        if (adminChannel && adminChannel.isTextBased() && 'send' in adminChannel) {
+          const guildName = interaction.guild?.name || 'Unknown Server';
+          const channelName = interaction.channel?.type === 0 ? `#${(interaction.channel as any).name}` : 'DM';
+          const timestamp = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+          
+          const adminEmbed = new EmbedBuilder()
+            .setColor(0x0099ff)
+            .setTitle('🤝 New Alliance Request')
+            .setDescription(`A new alliance request has been submitted and requires ${targetUserLink ? 'player approval' : 'admin approval'}.`)
+            .addFields(
+              { name: '🏛️ Requesting Nation', value: myNation, inline: true },
+              { name: '🎯 Target Nation', value: targetNation, inline: true },
+              { name: '👤 Requested By', value: `<@${interaction.user.id}> (${interaction.user.tag})`, inline: true },
+              { name: '🔗 Target User Status', value: targetUserLink ? `Linked to <@${targetUserLink.discordId}>` : 'Not linked - Admin approval required', inline: false },
+              { name: '🌍 Server', value: guildName, inline: true },
+              { name: '📍 Channel', value: channelName, inline: true },
+              { name: '⏰ Time (EST)', value: timestamp, inline: true },
+              { name: '🆔 User ID', value: interaction.user.id, inline: true },
+              { name: '🆔 Guild ID', value: interaction.guild?.id || 'N/A', inline: true },
+              { name: '🆔 Channel ID', value: interaction.channel?.id || 'N/A', inline: true }
+            )
+            .setFooter({ 
+              text: targetUserLink 
+                ? 'Target user has been notified via DM' 
+                : 'Use /admin-alliance-add to approve this request manually' 
+            })
+            .setTimestamp();
+
+          await adminChannel.send({ 
+            content: `<@&${adminRoleId}> New alliance request!`,
+            embeds: [adminEmbed] 
+          });
+        }
+      } catch (error) {
+        logger.warn('Failed to send admin notification for alliance request:', { error: error as Error });
+      }
+
       // Send notification to target user if they exist
       if (targetUserLink) {
         try {

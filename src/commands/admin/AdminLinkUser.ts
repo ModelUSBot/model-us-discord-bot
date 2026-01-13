@@ -19,7 +19,15 @@ export class AdminLinkUserCommand implements Command {
         .setDescription('Nation name to link the user to')
         .setRequired(true)
         .setAutocomplete(true)
-    );
+    )
+    .addStringOption(option =>
+      option.setName('role')
+        .setDescription('Role in the nation (default: President)')
+        .setRequired(false)
+        .addChoices(
+          { name: 'President', value: 'president' },
+          { name: 'Vice President', value: 'vice_president' }
+        ));
 
   public async execute(
     interaction: ChatInputCommandInteraction,
@@ -28,6 +36,7 @@ export class AdminLinkUserCommand implements Command {
   ): Promise<void> {
     const user = interaction.options.getUser('user', true);
     const nationName = interaction.options.getString('nation', true);
+    const role = interaction.options.getString('role') || 'president';
 
     try {
       const nation = dbManager.getNationByName(nationName);
@@ -38,29 +47,32 @@ export class AdminLinkUserCommand implements Command {
         return;
       }
 
-      const existingLink = dbManager.getUserByNation(nationName);
-      if (existingLink && existingLink.discordId !== user.id) {
+      // Check if this specific role is already taken by someone else
+      const existingRoleLink = dbManager.getUserByNationAndRole(nationName, role);
+      if (existingRoleLink && existingRoleLink.discordId !== user.id) {
+        const roleDisplayName = role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
         await interaction.reply({
-          content: `❌ Nation "${nationName}" is already linked to another user (<@${existingLink.discordId}>).`
+          content: `❌ Nation "${nationName}" already has a ${roleDisplayName} (<@${existingRoleLink.discordId}>).`
         });
         return;
       }
 
       const currentUserLink = dbManager.getUserLink(user.id);
-      dbManager.createOrUpdateUserLink(user.id, nationName);
+      dbManager.createOrUpdateUserLinkWithRole(user.id, nationName, role);
 
       const actionDetails = currentUserLink 
-        ? `Relinked user ${user.tag} from "${currentUserLink.nationName}" to "${nationName}"`
-        : `Linked user ${user.tag} to "${nationName}"`;
+        ? `Relinked user ${user.tag} from "${currentUserLink.nationName}" to "${nationName}" as ${role}`
+        : `Linked user ${user.tag} to "${nationName}" as ${role}`;
 
       dbManager.logAdminAction(interaction.user.id, 'LINK_USER', actionDetails);
 
       const embed = new EmbedBuilder()
         .setTitle('✅ User Linked Successfully')
-        .setDescription(`${user} has been linked to **${nation.name}**`)
+        .setDescription(`${user} has been linked to **${nation.name}** as **${role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}**`)
         .addFields(
           { name: '👤 Discord User', value: `${user.tag} (${user.id})`, inline: true },
           { name: '🏛️ Nation', value: nation.name, inline: true },
+          { name: '👑 Role', value: role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()), inline: true },
           { name: '📊 Nation Stats', value: `GDP: ${formatGDP(nation.gdp)}\nPopulation: ${nation.population.toLocaleString()}`, inline: true }
         )
         .setColor(0x00ff00)

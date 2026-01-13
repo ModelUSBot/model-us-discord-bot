@@ -67,25 +67,55 @@ export class NationCommand implements Command {
         .setFooter({ text: `Last updated: ${TimeUtils.getRelativeTime(nation.updatedAt)}` })
         .setTimestamp();
 
-      // Add leader information if nation is linked
-      const userLink = dbManager.getUserByNation(nationName);
-      if (userLink) {
-        embed.addFields({
-          name: '👑 Leader',
-          value: `<@${userLink.discordId}>`,
-          inline: true
-        });
+      // Add national debt (always show, defaults to 0) - HIGH PRIORITY
+      const nationalDebt = nation.nationalDebt || 0;
+      embed.addFields({
+        name: '💳 National Debt',
+        value: `${nationalDebt.toFixed(2)}B`,
+        inline: true
+      });
+
+      // Add leadership information if nation has linked users
+      const allUsers = dbManager.getAllUsersByNation(nationName);
+      if (allUsers.length > 0) {
+        const president = allUsers.find(user => user.role === 'president');
+        const vicePresident = allUsers.find(user => user.role === 'vice_president');
+        
+        if (president) {
+          embed.addFields({
+            name: '👑 President',
+            value: `<@${president.discordId}>`,
+            inline: true
+          });
+        }
+        
+        if (vicePresident) {
+          embed.addFields({
+            name: '🤝 Vice President',
+            value: `<@${vicePresident.discordId}>`,
+            inline: true
+          });
+        }
       }
 
       // Add flag if set (as image if it's a URL, otherwise as text)
       if (nation.flag) {
-        if (nation.flag.startsWith('http')) {
-          embed.setThumbnail(nation.flag);
-          embed.addFields({
-            name: '🏳️ Flag',
-            value: 'See image above',
-            inline: true
-          });
+        if (nation.flag.startsWith('http://') || nation.flag.startsWith('https://')) {
+          try {
+            embed.setThumbnail(nation.flag);
+            embed.addFields({
+              name: '🏳️ Flag',
+              value: '[View Flag Image](' + nation.flag + ')',
+              inline: true
+            });
+          } catch (flagError) {
+            // If setting thumbnail fails, just show as text
+            embed.addFields({
+              name: '🏳️ Flag',
+              value: nation.flag,
+              inline: true
+            });
+          }
         } else {
           embed.addFields({
             name: '🏳️ Flag',
@@ -104,6 +134,26 @@ export class NationCommand implements Command {
         });
       }
 
+      // Add government type if set
+      if (nation.governmentType) {
+        embed.addFields({
+          name: '🏛️ Government',
+          value: nation.governmentType,
+          inline: true
+        });
+      }
+
+      // Add provincial capitals if set
+      if (nation.provincialCapitals && nation.provincialCapitals.length > 0) {
+        embed.addFields({
+          name: '🏙️ Provincial Capitals',
+          value: nation.provincialCapitals.join(', '),
+          inline: true
+        });
+      }
+
+      // Add national debt (always show, defaults to 0) - REMOVED FROM HERE
+
       // Add description if set
       if (nation.description) {
         embed.addFields({
@@ -113,26 +163,28 @@ export class NationCommand implements Command {
         });
       }
 
-      // Add military readiness if set
-      if (nation.militaryReadiness !== null && nation.militaryReadiness !== undefined) {
-        const readinessDescriptions = [
-          '🕊️ Peaceful',
-          '🟢 Minimal',
-          '🟡 Low',
-          '🟠 Moderate',
-          '🔴 Elevated',
-          '⚠️ High',
-          '🚨 Critical',
-          '💥 Maximum',
-          '⚔️ War Footing',
-          '🔥 Total War',
-          '☢️ DEFCON 1'
-        ];
-        
-        const readinessDesc = readinessDescriptions[nation.militaryReadiness] || `Level ${nation.militaryReadiness}`;
+      // Add individual military stats if they exist
+      if (nation.groundStrength !== null && nation.groundStrength !== undefined) {
+        embed.addFields(
+          { name: '🪖 Ground Forces', value: `${nation.groundStrength}/10`, inline: true },
+          { name: '⚓ Naval Forces', value: `${nation.navalStrength || 0}/10`, inline: true },
+          { name: '✈️ Air Forces', value: `${nation.airStrength || 0}/10`, inline: true }
+        );
+      }
+
+      // Add leadership information from nation object (if available)
+      if (nation.leader && !allUsers.find(user => user.role === 'president')) {
         embed.addFields({
-          name: '🎖️ Military Readiness',
-          value: `${nation.militaryReadiness}/10 - ${readinessDesc}`,
+          name: '🏛️ Leader',
+          value: nation.leader,
+          inline: true
+        });
+      }
+      
+      if (nation.vicePresident && !allUsers.find(user => user.role === 'vice_president')) {
+        embed.addFields({
+          name: '🤝 Vice President', 
+          value: nation.vicePresident,
           inline: true
         });
       }
@@ -159,27 +211,97 @@ export class NationCommand implements Command {
       }
 
       // Check for active wars involving this nation
-      const activeWarsStmt = (dbManager as any).db.prepare(`
-        SELECT name, participants, start_date, casualties
-        FROM wars 
-        WHERE status = 'active' AND participants LIKE ?
-      `);
-      const activeWars = activeWarsStmt.all(`%${nationName}%`);
+      try {
+        const activeWarsStmt = (dbManager as any).db.prepare(`
+          SELECT name, participants, start_date, casualties
+          FROM wars 
+          WHERE status = 'active' AND participants LIKE ?
+        `);
+        const activeWars = activeWarsStmt.all(`%${nationName}%`);
 
-      if (activeWars.length > 0) {
-        const warList = activeWars.map((war: any) => {
-          const participants = war.participants.split(',').map((p: string) => p.trim());
-          const otherParticipants = participants.filter((p: string) => p !== nationName);
-          const startDate = new Date(war.start_date);
-          const timeAgo = TimeUtils.getRelativeTime(startDate);
-          return `**${war.name}** vs ${otherParticipants.join(', ')}\n└ Started ${timeAgo}, ${war.casualties.toLocaleString()} casualties`;
-        }).join('\n\n');
+        if (activeWars.length > 0) {
+          const warList = activeWars.map((war: any) => {
+            const participants = war.participants.split(',').map((p: string) => p.trim());
+            const otherParticipants = participants.filter((p: string) => p !== nationName);
+            const startDate = new Date(war.start_date);
+            const timeAgo = TimeUtils.getRelativeTime(startDate);
+            return `**${war.name}** vs ${otherParticipants.join(', ')}\n└ Started ${timeAgo}, ${war.casualties.toLocaleString()} casualties`;
+          }).join('\n\n');
 
+          embed.addFields({
+            name: '⚔️ Active Wars',
+            value: warList,
+            inline: false
+          });
+        }
+      } catch (warError) {
+        logger.warn('Error loading wars:', { error: warError as Error });
+      }
+
+      // Check for multi-nation alliance membership
+      const multiAlliances = dbManager.getNationMultiAlliances(nationName);
+      if (multiAlliances.length > 0) {
+        const allianceList = multiAlliances.map(alliance => {
+          const members = dbManager.getMultiAllianceMembers(alliance.id);
+          const leaderName = alliance.leader_nation || alliance.leaderNation;
+          const isLeader = leaderName === nationName;
+          return `**${alliance.name}** (${members.length} member${members.length === 1 ? '' : 's'})${isLeader ? ' - 👑 Leader' : ''}`;
+        }).join('\n');
+        
         embed.addFields({
-          name: '⚔️ Active Wars',
-          value: warList,
+          name: `🤝 Multi-Nation Alliance${multiAlliances.length > 1 ? 's' : ''}`,
+          value: allianceList,
           inline: false
         });
+      }
+
+      // Show loans and investments
+      const loans = dbManager.getLoansByNation(nationName);
+      const activeLoans = loans.filter((loan: any) => loan.status === 'active');
+      if (activeLoans.length > 0) {
+        const totalLent = activeLoans
+          .filter((loan: any) => loan.lender_nation === nationName)
+          .reduce((sum: number, loan: any) => sum + loan.remaining_balance, 0);
+        
+        const totalBorrowed = activeLoans
+          .filter((loan: any) => loan.borrower_nation === nationName)
+          .reduce((sum: number, loan: any) => sum + loan.remaining_balance, 0);
+
+        if (totalLent > 0 || totalBorrowed > 0) {
+          let loanText = '';
+          if (totalLent > 0) loanText += `Lent: $${totalLent.toFixed(2)}B\n`;
+          if (totalBorrowed > 0) loanText += `Borrowed: $${totalBorrowed.toFixed(2)}B`;
+          
+          embed.addFields({
+            name: '💰 Active Loans',
+            value: loanText.trim(),
+            inline: true
+          });
+        }
+      }
+
+      const investments = dbManager.getInvestmentsByNation(nationName);
+      const activeInvestments = investments.filter((inv: any) => inv.status === 'active');
+      if (activeInvestments.length > 0) {
+        const totalInvested = activeInvestments
+          .filter((inv: any) => inv.investor_nation === nationName)
+          .reduce((sum: number, inv: any) => sum + inv.current_value, 0);
+        
+        const totalReceived = activeInvestments
+          .filter((inv: any) => inv.target_nation === nationName)
+          .reduce((sum: number, inv: any) => sum + inv.current_value, 0);
+
+        if (totalInvested > 0 || totalReceived > 0) {
+          let investText = '';
+          if (totalInvested > 0) investText += `Invested: $${totalInvested.toFixed(2)}B\n`;
+          if (totalReceived > 0) investText += `Received: $${totalReceived.toFixed(2)}B`;
+          
+          embed.addFields({
+            name: '📈 Active Investments',
+            value: investText.trim(),
+            inline: true
+          });
+        }
       }
 
       await interaction.reply({ embeds: [embed] });

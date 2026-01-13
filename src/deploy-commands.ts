@@ -19,8 +19,14 @@ import { AdminAuditCommand } from './commands/admin/AdminAudit';
 import { AdminEndWarCommand } from './commands/admin/AdminEndWar';
 import { AdminSetCapitalCommand } from './commands/admin/AdminSetCapital';
 import { AdminSetFlagCommand } from './commands/admin/AdminSetFlag';
-import { AdminRemoveTagCommand } from './commands/admin/AdminRemoveTag';
+import { AdminRepairDataCommand } from './commands/admin/AdminRepairData';
 import { AdminSetPrefixCommand } from './commands/admin/AdminSetPrefix';
+import { AdminLawCommand } from './commands/admin/AdminLawCommand';
+import { AdminMultiAllianceCommand } from './commands/admin/AdminMultiAllianceCommand';
+import { AdminSetMapCommand } from './commands/admin/AdminSetMapCommand';
+import { AdminProvincialCapitalsCommand } from './commands/admin/AdminProvincialCapitalsCommand';
+import { AdminLoansCommand } from './commands/admin/AdminLoansCommand';
+import { AdminDiplomacyCommand } from './commands/admin/AdminDiplomacyCommand';
 
 import { NationCommand } from './commands/player/NationCommand';
 import { WarsCommand } from './commands/player/WarsCommand';
@@ -34,14 +40,19 @@ import { SetCapitalCommand } from './commands/player/SetCapital';
 import { SetFlagCommand } from './commands/player/SetFlag';
 import { SetTaxRateCommand } from './commands/player/SetTaxRateCommand';
 import { SetPrefixCommand } from './commands/player/SetPrefixCommand';
-import { AddLawCommand } from './commands/player/AddLawCommand';
-import { ReadLawCommand } from './commands/player/ReadLawCommand';
-import { ListLawsCommand } from './commands/player/ListLawsCommand';
-import { DeleteLawCommand } from './commands/player/DeleteLawCommand';
-import { AddTagCommand } from './commands/player/AddTagCommand';
-import { ListTagsCommand } from './commands/player/ListTagsCommand';
-import { TagInfoCommand } from './commands/player/TagInfoCommand';
+import { LawCommand } from './commands/player/LawCommand';
+import { MultiAllianceCommand } from './commands/player/MultiAllianceCommand';
+import { MapCommand } from './commands/player/MapCommand';
+import { TagCommand } from './commands/player/TagCommand';
 import { AddDescCommand } from './commands/player/AddDescCommand';
+import { AllianceMapCommand } from './commands/player/AllianceMapCommand';
+import { ProvincialCapitalsCommand } from './commands/player/ProvincialCapitalsCommand';
+import { LoansCommand } from './commands/player/LoansCommand';
+import { InvestCommand } from './commands/player/InvestCommand';
+import { CompareNationsCommand } from './commands/player/CompareNationsCommand';
+import { DashboardCommand } from './commands/player/DashboardCommand';
+import { SetGovernmentTypeCommand } from './commands/player/SetGovernmentTypeCommand';
+import { InternationalRelationsCommand } from './commands/player/InternationalRelationsCommand';
 
 // Load environment variables
 config();
@@ -65,8 +76,14 @@ const commands = [
   new AdminEndWarCommand().data.toJSON(),
   new AdminSetCapitalCommand().data.toJSON(),
   new AdminSetFlagCommand().data.toJSON(),
-  new AdminRemoveTagCommand().data.toJSON(),
+  new AdminRepairDataCommand().data.toJSON(),
   new AdminSetPrefixCommand().data.toJSON(),
+  new AdminLawCommand().data.toJSON(),
+  new AdminMultiAllianceCommand().data.toJSON(),
+  new AdminSetMapCommand().data.toJSON(),
+  new AdminProvincialCapitalsCommand().data.toJSON(),
+  new AdminLoansCommand().data.toJSON(),
+  new AdminDiplomacyCommand().data.toJSON(),
 
   
   // Player commands
@@ -82,14 +99,19 @@ const commands = [
   new SetFlagCommand().data.toJSON(),
   new SetTaxRateCommand().data.toJSON(),
   new SetPrefixCommand().data.toJSON(),
-  new AddLawCommand().data.toJSON(),
-  new ReadLawCommand().data.toJSON(),
-  new ListLawsCommand().data.toJSON(),
-  new DeleteLawCommand().data.toJSON(),
-  new AddTagCommand().data.toJSON(),
-  new ListTagsCommand().data.toJSON(),
-  new TagInfoCommand().data.toJSON(),
+  new LawCommand().data.toJSON(),
+  new MultiAllianceCommand().data.toJSON(),
+  new MapCommand().data.toJSON(),
+  new AllianceMapCommand().data.toJSON(),
+  new TagCommand().data.toJSON(),
   new AddDescCommand().data.toJSON(),
+  new ProvincialCapitalsCommand().data.toJSON(),
+  new LoansCommand().data.toJSON(),
+  new InvestCommand().data.toJSON(),
+  new CompareNationsCommand().data.toJSON(),
+  new DashboardCommand().data.toJSON(),
+  new SetGovernmentTypeCommand().data.toJSON(),
+  new InternationalRelationsCommand().data.toJSON(),
 ];
 
 const rest = new REST().setToken(process.env.DISCORD_TOKEN!);

@@ -1,9 +1,9 @@
-import { SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
+import { SlashCommandBuilder, SlashCommandOptionsOnlyBuilder, SlashCommandSubcommandsOnlyBuilder, ChatInputCommandInteraction, AutocompleteInteraction } from 'discord.js';
 
 // Core data types for the Model US Discord Bot
 
 export interface Command {
-  data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder;
+  data: SlashCommandBuilder | SlashCommandOptionsOnlyBuilder | SlashCommandSubcommandsOnlyBuilder;
   execute(interaction: ChatInputCommandInteraction, dbManager: any, logger: any): Promise<void>;
   autocomplete?(interaction: AutocompleteInteraction, dbManager: any, logger: any): Promise<void>;
 }
@@ -24,9 +24,18 @@ export interface NationStats {
   flag?: string;
   flagSetAt?: Date;
   capital?: string;
-  leader?: string; // Discord username if linked
+  leader?: string; // Discord username if linked (President)
+  vicePresident?: string; // Discord username if linked (VP)
   description?: string;
-  militaryReadiness?: number; // 0-10 scale
+  groundStrength?: number;   // 0-10 scale
+  navalStrength?: number;    // 0-10 scale  
+  airStrength?: number;      // 0-10 scale
+  
+  // New fields
+  governmentType?: string;   // Democracy, Monarchy, Fascism, etc.
+  provincialCapitals?: string[]; // Up to 3 provincial capitals
+  nationalDebt?: number;     // Total debt amount
+  tradingPartners?: string[]; // List of major trading partners
 }
 
 export interface War {
@@ -44,6 +53,7 @@ export interface UserLink {
   id: number;
   discordId: string;
   nationName: string;
+  role: 'president' | 'vice_president';
   createdAt: Date;
 }
 
@@ -60,7 +70,7 @@ export interface UserActivity {
 
 export interface DisasterEvent {
   type: 'very_small' | 'small' | 'medium' | 'large' | 'major' | 'catastrophic';
-  category: 'natural' | 'pandemic' | 'war' | 'economic' | 'famine' | 'cyber' | 'infrastructure' | 'death';
+  category: 'natural' | 'artificial';
   title: string;
   description: string;
   timeline: string;
@@ -108,7 +118,7 @@ export interface BackupRecord {
   type: 'automatic' | 'manual';
 }
 
-export type RankingCategory = 'gdp' | 'population' | 'stability' | 'tax_rate' | 'gdp_per_capita' | 'military_readiness';
+export type RankingCategory = 'gdp' | 'population' | 'stability' | 'tax_rate' | 'gdp_per_capita' | 'air_strength' | 'naval_strength' | 'ground_strength';
 
 export type DisasterSeverity = 'very_small' | 'small' | 'medium' | 'large' | 'major' | 'catastrophic';
 
@@ -234,6 +244,9 @@ export interface Law {
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
+  editedAt?: Date;      // New
+  editedBy?: string;    // New
+  originalText?: string; // New
 }
 
 export interface Tag {
@@ -246,6 +259,66 @@ export interface Tag {
 
 export interface LawWithTags extends Law {
   tags: Tag[];
+}
+
+// Multi-Alliance System Interfaces
+export interface MultiAlliance {
+  id: number;
+  name: string;
+  description?: string;
+  leaderNation: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  members?: MultiAllianceMember[];
+}
+
+export interface MultiAllianceMember {
+  id: number;
+  allianceId: number;
+  nationName: string;
+  joinedAt: Date;
+  joinedBy: string;
+}
+
+// Map System Interface
+export interface MapSettings {
+  id: number;
+  mapUrl: string;
+  mapDescription?: string;
+  mapType: 'world' | 'alliance'; // New field to distinguish map types
+  setBy: string;
+  setAt: Date;
+}
+
+// New interfaces for loans and investments
+export interface Loan {
+  id: number;
+  lenderNation: string;
+  borrowerNation: string;
+  amount: number;
+  interestRate: number;
+  termMonths: number;
+  monthlyPayment: number;
+  remainingBalance: number;
+  status: 'active' | 'paid_off' | 'defaulted';
+  createdAt: Date;
+  dueDate: Date;
+  lastPayment?: Date;
+}
+
+export interface Investment {
+  id: number;
+  investorNation: string;
+  targetNation: string;
+  amount: number;
+  investmentType: 'infrastructure' | 'military' | 'technology' | 'education' | 'healthcare';
+  expectedReturn: number;
+  duration: number; // in months
+  status: 'active' | 'completed' | 'failed';
+  createdAt: Date;
+  maturityDate: Date;
+  currentValue: number;
 }
 
 export interface NationActivity {

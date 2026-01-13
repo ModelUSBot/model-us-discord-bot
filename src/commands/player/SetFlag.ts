@@ -2,7 +2,7 @@ import { SlashCommandBuilder, ChatInputCommandInteraction, EmbedBuilder } from '
 import { Command } from '../../types';
 import { DatabaseManager } from '../../database/DatabaseManager';
 import { Logger } from '../../utils/Logger';
-import { formatTimeRemaining } from '../../utils/FormatUtils';
+import { formatTimeRemaining, formatCooldownTime } from '../../utils/FormatUtils';
 import { PermissionManager } from '../../bot/PermissionManager';
 
 export class SetFlagCommand implements Command {

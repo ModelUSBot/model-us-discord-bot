@@ -24,21 +24,54 @@ export class AdminNationEditCommand implements Command {
           { name: 'Stability (0-100%)', value: 'stability' },
           { name: 'Population', value: 'population' },
           { name: 'Tax Rate (0-100%)', value: 'tax_rate' },
-          { name: 'Military Readiness (0-10)', value: 'military_readiness' },
-          { name: 'Capital City', value: 'capital' }
+          { name: 'Ground Strength (0-10)', value: 'ground_strength' },
+          { name: 'Naval Strength (0-10)', value: 'naval_strength' },
+          { name: 'Air Strength (0-10)', value: 'air_strength' },
+          { name: 'Capital City', value: 'capital' },
+          { name: 'Government Type', value: 'government_type' }
         )
     )
     .addNumberOption(option =>
       option.setName('value')
-        .setDescription('Numeric value to set/add/subtract (for GDP, Stability, Population, Tax Rate, Military Readiness)')
+        .setDescription('Numeric value to set/add/subtract (for GDP, Stability, Population, Tax Rate, Military Stats)')
         .setRequired(false)
     )
     .addStringOption(option =>
       option.setName('text_value')
-        .setDescription('Text value to set (for Capital City)')
+        .setDescription('Text value to set (for Capital City, Government Type)')
         .setRequired(false)
         .setMaxLength(50)
     )
+    .addStringOption(option =>
+      option.setName('government_type_choice')
+        .setDescription('Government type (use this instead of text_value for government type)')
+        .setRequired(false)
+        .addChoices(
+          { name: 'Democracy', value: 'Democracy' },
+          { name: 'Republic', value: 'Republic' },
+          { name: 'Constitutional Monarchy', value: 'Constitutional Monarchy' },
+          { name: 'Parliamentary Democracy', value: 'Parliamentary Democracy' },
+          { name: 'Federal Republic', value: 'Federal Republic' },
+          { name: 'Presidential Republic', value: 'Presidential Republic' },
+          { name: 'Monarchy', value: 'Monarchy' },
+          { name: 'Absolute Monarchy', value: 'Absolute Monarchy' },
+          { name: 'Dictatorship', value: 'Dictatorship' },
+          { name: 'Military Dictatorship', value: 'Military Dictatorship' },
+          { name: 'One-Party State', value: 'One-Party State' },
+          { name: 'Totalitarian State', value: 'Totalitarian State' },
+          { name: 'Fascist State', value: 'Fascist State' },
+          { name: 'Communist State', value: 'Communist State' },
+          { name: 'Socialist Republic', value: 'Socialist Republic' },
+          { name: 'Theocracy', value: 'Theocracy' },
+          { name: 'Islamic Republic', value: 'Islamic Republic' },
+          { name: 'Oligarchy', value: 'Oligarchy' },
+          { name: 'Technocracy', value: 'Technocracy' },
+          { name: 'Federation', value: 'Federation' },
+          { name: 'Confederation', value: 'Confederation' },
+          { name: 'City-State', value: 'City-State' },
+          { name: 'Empire', value: 'Empire' },
+          { name: 'Anarchist Territory', value: 'Anarchist Territory' }
+        ))
     .addBooleanOption(option =>
       option.setName('set_absolute')
         .setDescription('Set to absolute value instead of adding/subtracting')
@@ -51,9 +84,10 @@ export class AdminNationEditCommand implements Command {
     logger: Logger
   ): Promise<void> {
     const nationName = interaction.options.getString('nation', true);
-    const stat = interaction.options.getString('stat', true) as 'gdp' | 'stability' | 'population' | 'tax_rate' | 'military_readiness' | 'capital';
+    const stat = interaction.options.getString('stat', true) as 'gdp' | 'stability' | 'population' | 'tax_rate' | 'ground_strength' | 'naval_strength' | 'air_strength' | 'capital' | 'government_type';
     const value = interaction.options.getNumber('value');
     const textValue = interaction.options.getString('text_value');
+    const governmentTypeChoice = interaction.options.getString('government_type_choice');
     const setAbsolute = interaction.options.getBoolean('set_absolute') ?? false;
 
     // Validate that appropriate value type is provided
@@ -61,6 +95,13 @@ export class AdminNationEditCommand implements Command {
       if (!textValue) {
         await interaction.reply({
           content: '❌ Please provide a text_value for the capital city.'
+        });
+        return;
+      }
+    } else if (stat === 'government_type') {
+      if (!governmentTypeChoice) {
+        await interaction.reply({
+          content: '❌ Please select a government type from the government_type_choice option.'
         });
         return;
       }
@@ -84,7 +125,7 @@ export class AdminNationEditCommand implements Command {
         return;
       }
 
-      // Handle capital city (string value)
+      // Handle text values (capital, government type, credit rating)
       if (stat === 'capital') {
         const success = dbManager.setNationCapital(nationName, textValue!, interaction.user.id);
         if (!success) {
@@ -106,6 +147,27 @@ export class AdminNationEditCommand implements Command {
 
         await interaction.reply({ embeds: [embed] });
         return;
+      } else if (stat === 'government_type') {
+        const success = dbManager.setGovernmentType(nationName, governmentTypeChoice!, interaction.user.id);
+        if (!success) {
+          await interaction.reply({
+            content: `❌ Failed to update government type for "${nationName}".`
+          });
+          return;
+        }
+
+        const embed = new EmbedBuilder()
+          .setTitle(`🏛️ Government Type Updated`)
+          .setDescription(`Successfully set government type for **${nationName}**`)
+          .addFields(
+            { name: '🏛️ New Government Type', value: governmentTypeChoice!, inline: true },
+            { name: '👤 Set By', value: 'System Administrator', inline: true }
+          )
+          .setColor(0x3498db)
+          .setTimestamp();
+
+        await interaction.reply({ embeds: [embed] });
+        return;
       }
 
       // Calculate new value based on operation (for numeric stats)
@@ -114,7 +176,9 @@ export class AdminNationEditCommand implements Command {
       const currentValue = (() => {
         switch (stat) {
           case 'tax_rate': return existingNation.taxRate;
-          case 'military_readiness': return existingNation.militaryReadiness || 5.0;
+          case 'ground_strength': return existingNation.groundStrength || 5.0;
+          case 'naval_strength': return existingNation.navalStrength || 5.0;
+          case 'air_strength': return existingNation.airStrength || 5.0;
           default: return existingNation[stat] as number;
         }
       })();
@@ -135,10 +199,10 @@ export class AdminNationEditCommand implements Command {
           });
           return;
         }
-      } else if (stat === 'military_readiness') {
+      } else if (stat === 'ground_strength' || stat === 'naval_strength' || stat === 'air_strength') {
         if (newValue < 0 || newValue > 10) {
           await interaction.reply({
-            content: `❌ Military Readiness must be between 0 and 10. Calculated value: ${newValue.toFixed(2)}`
+            content: `❌ Military strengths must be between 0 and 10. Calculated value: ${newValue.toFixed(2)}`
           });
           return;
         }
@@ -150,17 +214,21 @@ export class AdminNationEditCommand implements Command {
       }
 
       // Update the nation statistics
-      if (stat === 'military_readiness') {
-        // Use dedicated method for military readiness
-        const success = dbManager.setMilitaryReadiness(nationName, newValue, interaction.user.id);
-        if (!success) {
+      if (stat === 'ground_strength' || stat === 'naval_strength' || stat === 'air_strength') {
+        // Update individual military stats
+        const stmt = (dbManager as any).db.prepare(`
+          UPDATE nations 
+          SET ${stat} = ? 
+          WHERE name = ? COLLATE NOCASE
+        `);
+        const result = stmt.run(newValue, nationName);
+        if (result.changes === 0) {
           await interaction.reply({
-            content: `❌ Failed to update military readiness for "${nationName}".`
+            content: `❌ Failed to update ${stat.replace('_', ' ')} for "${nationName}".`
           });
           return;
         }
-        // Get updated nation data
-        const nation = dbManager.getNationByName(nationName)!;
+        dbManager.logAdminAction(interaction.user.id, 'UPDATE_STATS', `Updated ${stat.replace('_', ' ')} for ${nationName}: ${currentValue.toFixed(2)} → ${newValue.toFixed(2)}`);
       } else {
         // Update the nation's stat directly (no conversion needed since we store in billions now)
         let storageValue = newValue;
@@ -183,8 +251,8 @@ export class AdminNationEditCommand implements Command {
       // Calculate percentage change
       const percentageChange = calculatePercentageChange(currentValue, newValue);
 
-      // Log the admin action (only if not military readiness, as setMilitaryReadiness logs automatically)
-      if (stat !== 'military_readiness') {
+      // Log the admin action (only if not already logged by military stat updates)
+      if (stat !== 'ground_strength' && stat !== 'naval_strength' && stat !== 'air_strength') {
         const operationText = operation.charAt(0).toUpperCase() + operation.slice(1);
         const statName = stat === 'tax_rate' ? 'Tax Rate' : stat.charAt(0).toUpperCase() + stat.slice(1);
         const actionDetails = `${operationText} ${statName} for ${nationName}: ${currentValue.toFixed(2)} → ${newValue.toFixed(2)} (${formatPercentageChange(percentageChange)})`;
@@ -195,7 +263,9 @@ export class AdminNationEditCommand implements Command {
       const statDisplayName = (() => {
         switch (stat) {
           case 'tax_rate': return 'Tax Rate';
-          case 'military_readiness': return 'Military Readiness';
+          case 'ground_strength': return 'Ground Strength';
+          case 'naval_strength': return 'Naval Strength';
+          case 'air_strength': return 'Air Strength';
           default: return stat.charAt(0).toUpperCase() + stat.slice(1);
         }
       })();
@@ -222,30 +292,6 @@ export class AdminNationEditCommand implements Command {
         { name: '🏛️ Budget', value: `${nation.budget.toFixed(2)} Billion`, inline: true },
         { name: '💵 GDP per Capita', value: `$${nation.gdpPerCapita.toFixed(2)}`, inline: true }
       );
-
-      // Add military readiness if it exists
-      if (nation.militaryReadiness !== null && nation.militaryReadiness !== undefined) {
-        const readinessDescriptions = [
-          '🕊️ Peaceful',
-          '🟢 Minimal',
-          '🟡 Low',
-          '🟠 Moderate',
-          '🔴 Elevated',
-          '⚠️ High',
-          '🚨 Critical',
-          '💥 Maximum',
-          '⚔️ War Footing',
-          '🔥 Total War',
-          '☢️ DEFCON 1'
-        ];
-        
-        const readinessDesc = readinessDescriptions[Math.floor(nation.militaryReadiness)] || `Level ${nation.militaryReadiness}`;
-        embed.addFields({
-          name: '🎖️ Military Readiness',
-          value: `${nation.militaryReadiness}/10 - ${readinessDesc}`,
-          inline: true
-        });
-      }
 
       await interaction.reply({ embeds: [embed] });
 

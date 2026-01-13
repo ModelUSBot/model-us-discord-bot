@@ -21,9 +21,15 @@ import { AdminBackupCommand } from './commands/admin/AdminBackup';
 import { AdminEndWarCommand } from './commands/admin/AdminEndWar';
 import { AdminAuditCommand } from './commands/admin/AdminAudit';
 import { AdminSetFlagCommand } from './commands/admin/AdminSetFlag';
+import { AdminRepairDataCommand } from './commands/admin/AdminRepairData';
 import { AdminSetCapitalCommand } from './commands/admin/AdminSetCapital';
-import { AdminRemoveTagCommand } from './commands/admin/AdminRemoveTag';
 import { AdminSetPrefixCommand } from './commands/admin/AdminSetPrefix';
+import { AdminLawCommand } from './commands/admin/AdminLawCommand';
+import { AdminMultiAllianceCommand } from './commands/admin/AdminMultiAllianceCommand';
+import { AdminSetMapCommand } from './commands/admin/AdminSetMapCommand';
+import { AdminProvincialCapitalsCommand } from './commands/admin/AdminProvincialCapitalsCommand';
+import { AdminLoansCommand } from './commands/admin/AdminLoansCommand';
+import { AdminDiplomacyCommand } from './commands/admin/AdminDiplomacyCommand';
 
 import { NationCommand } from './commands/player/NationCommand';
 import { WarsCommand } from './commands/player/WarsCommand';
@@ -37,14 +43,19 @@ import { SetFlagCommand } from './commands/player/SetFlag';
 import { SetCapitalCommand } from './commands/player/SetCapital';
 import { SetTaxRateCommand } from './commands/player/SetTaxRateCommand';
 import { SetPrefixCommand } from './commands/player/SetPrefixCommand';
-import { AddLawCommand } from './commands/player/AddLawCommand';
-import { ReadLawCommand } from './commands/player/ReadLawCommand';
-import { ListLawsCommand } from './commands/player/ListLawsCommand';
-import { DeleteLawCommand } from './commands/player/DeleteLawCommand';
-import { AddTagCommand } from './commands/player/AddTagCommand';
-import { ListTagsCommand } from './commands/player/ListTagsCommand';
-import { TagInfoCommand } from './commands/player/TagInfoCommand';
+import { LawCommand } from './commands/player/LawCommand';
+import { MultiAllianceCommand } from './commands/player/MultiAllianceCommand';
+import { MapCommand } from './commands/player/MapCommand';
+import { TagCommand } from './commands/player/TagCommand';
 import { AddDescCommand } from './commands/player/AddDescCommand';
+import { AllianceMapCommand } from './commands/player/AllianceMapCommand';
+import { ProvincialCapitalsCommand } from './commands/player/ProvincialCapitalsCommand';
+import { LoansCommand } from './commands/player/LoansCommand';
+import { InvestCommand } from './commands/player/InvestCommand';
+import { CompareNationsCommand } from './commands/player/CompareNationsCommand';
+import { DashboardCommand } from './commands/player/DashboardCommand';
+import { SetGovernmentTypeCommand } from './commands/player/SetGovernmentTypeCommand';
+import { InternationalRelationsCommand } from './commands/player/InternationalRelationsCommand';
 
 // Load environment variables
 config();
@@ -130,9 +141,15 @@ async function main(): Promise<void> {
     client.addCommand(new AdminEndWarCommand());
     client.addCommand(new AdminAuditCommand());
     client.addCommand(new AdminSetFlagCommand());
+    client.addCommand(new AdminRepairDataCommand());
     client.addCommand(new AdminSetCapitalCommand());
-    client.addCommand(new AdminRemoveTagCommand());
     client.addCommand(new AdminSetPrefixCommand());
+    client.addCommand(new AdminLawCommand());
+    client.addCommand(new AdminMultiAllianceCommand());
+    client.addCommand(new AdminSetMapCommand());
+    client.addCommand(new AdminProvincialCapitalsCommand());
+    client.addCommand(new AdminLoansCommand());
+    client.addCommand(new AdminDiplomacyCommand());
 
     
     // Player commands
@@ -148,14 +165,19 @@ async function main(): Promise<void> {
     client.addCommand(new SetCapitalCommand());
     client.addCommand(new SetTaxRateCommand());
     client.addCommand(new SetPrefixCommand());
-    client.addCommand(new AddLawCommand());
-    client.addCommand(new ReadLawCommand());
-    client.addCommand(new ListLawsCommand());
-    client.addCommand(new DeleteLawCommand());
-    client.addCommand(new AddTagCommand());
-    client.addCommand(new ListTagsCommand());
-    client.addCommand(new TagInfoCommand());
+    client.addCommand(new LawCommand());
+    client.addCommand(new MultiAllianceCommand());
+    client.addCommand(new MapCommand());
+    client.addCommand(new AllianceMapCommand());
+    client.addCommand(new TagCommand());
     client.addCommand(new AddDescCommand());
+    client.addCommand(new ProvincialCapitalsCommand());
+    client.addCommand(new LoansCommand());
+    client.addCommand(new InvestCommand());
+    client.addCommand(new CompareNationsCommand());
+    client.addCommand(new DashboardCommand());
+    client.addCommand(new SetGovernmentTypeCommand());
+    client.addCommand(new InternationalRelationsCommand());
     
     logger.info(`Registered ${client.commands.size} commands`);
     console.log(`Registered ${client.commands.size} commands`);
@@ -165,10 +187,46 @@ async function main(): Promise<void> {
     await client.start();
     console.log('Bot started successfully!');
     
+    // Start daily debt compounding (every 24 hours)
+    let debtCompoundingInterval: NodeJS.Timeout | null = null;
+    
+    const startDebtCompounding = () => {
+      const checkAndCompound = () => {
+        try {
+          const lastCompound = client.database.getLastDebtCompound();
+          const now = new Date();
+          const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          
+          if (!lastCompound || lastCompound < twentyFourHoursAgo) {
+            logger.info('Running daily debt compounding...');
+            client.database.compoundNationalDebt();
+            logger.info('Daily debt compounding completed');
+          }
+        } catch (error) {
+          logger.error('Error during debt compounding:', { error: error as Error });
+        }
+      };
+      
+      // Run immediately on startup
+      checkAndCompound();
+      
+      // Then run every hour to check if 24 hours have passed
+      debtCompoundingInterval = setInterval(checkAndCompound, 60 * 60 * 1000); // Check every hour
+    };
+    
+    startDebtCompounding();
+    
     // Handle graceful shutdown
     const shutdown = async (signal: string): Promise<void> => {
       logger.info(`Received ${signal}, shutting down gracefully...`);
       try {
+        // Clear the debt compounding interval
+        if (debtCompoundingInterval) {
+          clearInterval(debtCompoundingInterval);
+          debtCompoundingInterval = null;
+          logger.info('Debt compounding interval cleared');
+        }
+        
         await client.shutdown();
         process.exit(0);
       } catch (error) {

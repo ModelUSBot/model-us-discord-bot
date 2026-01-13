@@ -68,7 +68,7 @@ export class AddLawCommand implements Command {
 
         if (invalidTags.length > 0) {
           await interaction.reply({
-            content: `❌ The following tags don't exist: ${invalidTags.join(', ')}\n\nUse \`/list-tags\` to see available tags or \`/add-tag\` to create new ones.`
+            content: `❌ The following tags don't exist: ${invalidTags.join(', ')}\n\nUse \`/tag list\` to see available tags or \`/tag add\` to create new ones.`
           });
           return;
         }

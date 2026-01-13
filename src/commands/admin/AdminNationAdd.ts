@@ -122,7 +122,7 @@ export class AdminNationAddCommand implements Command {
       if (militaryReadiness !== 5.0) {
         const readinessDescriptions = [
           '🕊️ Peaceful', '🟢 Minimal', '🟡 Low', '🟠 Moderate', '🔴 Elevated',
-          '⚠️ High', '🚨 Critical', '💥 Maximum', '⚔️ War Footing', '🔥 Total War', '☢️ DEFCON 1'
+          '⚠️ High', '🚨 Critical', '💥 Maximum', '⚔️ War Footing', '🔥 Total War', '☢️ Nuclear Ready'
         ];
         const readinessDesc = readinessDescriptions[Math.floor(militaryReadiness)] || `Level ${militaryReadiness}`;
         embed.addFields({

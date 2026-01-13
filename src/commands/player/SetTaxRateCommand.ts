@@ -3,6 +3,7 @@ import { Command } from '../../types';
 import { DatabaseManager } from '../../database/DatabaseManager';
 import { Logger } from '../../utils/Logger';
 import { formatGDP } from '../../utils/FormatUtils';
+import { handleCommandError, validateTaxRate, checkCooldown, safeReply } from '../../utils/CommandUtils';
 
 export class SetTaxRateCommand implements Command {
   public data = new SlashCommandBuilder()
@@ -21,9 +22,27 @@ export class SetTaxRateCommand implements Command {
     dbManager: DatabaseManager,
     logger: Logger
   ): Promise<void> {
+    // Check cooldown
+    if (!(await checkCooldown(interaction, 2000))) {
+      return;
+    }
+
     const newTaxRate = interaction.options.getNumber('rate', true);
 
     try {
+      // Validate tax rate input
+      const validation = validateTaxRate(newTaxRate);
+      if (!validation.valid) {
+        const embed = new EmbedBuilder()
+          .setColor(0xff0000)
+          .setTitle('❌ Invalid Tax Rate')
+          .setDescription(validation.error!)
+          .setTimestamp();
+
+        await safeReply(interaction, { embeds: [embed] }, true);
+        return;
+      }
+
       // Check if user has a linked nation
       const userLink = dbManager.getUserLink(interaction.user.id);
       if (!userLink) {
@@ -33,7 +52,7 @@ export class SetTaxRateCommand implements Command {
           .setDescription('You must have a linked nation to change tax rates. Ask an admin to link your nation first.')
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed] }, true);
         return;
       }
 
@@ -48,7 +67,7 @@ export class SetTaxRateCommand implements Command {
           .setDescription(`Your linked nation "${nationName}" was not found in the database.`)
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed] }, true);
         return;
       }
 
@@ -69,14 +88,14 @@ export class SetTaxRateCommand implements Command {
         const embed = new EmbedBuilder()
           .setColor(0xff0000)
           .setTitle('❌ Tax Rate Change on Cooldown')
-          .setDescription(`You can only change your tax rate once every 7 days. Please wait ${timeText} before changing it again.`)
+          .setDescription(`You can only change your tax rate once every 7 days. You can do it in ${timeText}.`)
           .addFields(
             { name: '⏰ Current Tax Rate', value: `${nation.taxRate.toFixed(1)}%`, inline: true },
             { name: '⏳ Time Remaining', value: timeText, inline: true }
           )
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed] }, true);
         return;
       }
 
@@ -88,7 +107,7 @@ export class SetTaxRateCommand implements Command {
           .setDescription(`Your nation's tax rate is already ${newTaxRate}%.`)
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed] }, true);
         return;
       }
 
@@ -102,67 +121,48 @@ export class SetTaxRateCommand implements Command {
           .setDescription('An error occurred while updating your tax rate. Please try again.')
           .setTimestamp();
 
-        await interaction.reply({ embeds: [embed], ephemeral: true });
+        await safeReply(interaction, { embeds: [embed] }, true);
         return;
       }
 
       // Get updated nation data
-      const updatedNation = dbManager.getNationByName(nationName)!;
-
-      const embed = new EmbedBuilder()
-        .setColor(0x00ff00)
-        .setTitle('✅ Tax Rate Updated Successfully')
-        .setDescription(`Your nation's tax rate has been changed from **${nation.taxRate.toFixed(1)}%** to **${newTaxRate}%**.`)
-        .addFields(
-          { name: '🏛️ Nation', value: nationName, inline: true },
-          { name: '💸 Old Tax Rate', value: `${nation.taxRate.toFixed(1)}%`, inline: true },
-          { name: '💸 New Tax Rate', value: `${newTaxRate}%`, inline: true },
-          { name: '🏦 Old Budget', value: formatGDP(nation.budget), inline: true },
-          { name: '🏦 New Budget', value: formatGDP(updatedNation.budget), inline: true },
-          { name: '⏰ Next Change Available', value: '<t:' + Math.floor((Date.now() + 7 * 24 * 60 * 60 * 1000) / 1000) + ':R>', inline: true }
-        )
-        .setFooter({ text: `Changed by ${interaction.user.tag}` })
-        .setTimestamp();
-
-      await interaction.reply({ embeds: [embed] });
-
-      // Send notification to admin channel
-      try {
-        const adminChannelId = process.env.ADMIN_NOTIFICATION_CHANNEL_ID || '1457229969481531463';
-        const adminChannel = await interaction.client.channels.fetch(adminChannelId);
-        
-        if (adminChannel && adminChannel.isTextBased() && 'send' in adminChannel) {
-          const adminEmbed = new EmbedBuilder()
-            .setColor(0xffa500)
-            .setTitle('📊 Tax Rate Changed')
-            .setDescription(`A player has changed their nation's tax rate.`)
-            .addFields(
-              { name: '🏛️ Nation', value: nationName, inline: true },
-              { name: '👤 Player', value: `<@${interaction.user.id}>`, inline: true },
-              { name: '💸 Change', value: `${nation.taxRate.toFixed(1)}% → ${newTaxRate}%`, inline: true },
-              { name: '🏦 Budget Impact', value: `${formatGDP(nation.budget)} → ${formatGDP(updatedNation.budget)}`, inline: false }
-            )
-            .setFooter({ text: `Player: ${interaction.user.tag}` })
-            .setTimestamp();
-
-          await adminChannel.send({ embeds: [adminEmbed] });
-        }
-      } catch (error) {
-        logger.warn('Failed to send admin notification for tax rate change:', { error: error as Error });
+      const updatedNation = dbManager.getNationByName(nationName);
+      if (!updatedNation) {
+        throw new Error('Failed to retrieve updated nation data');
       }
 
-      logger.info(`User ${interaction.user.tag} (${nationName}) changed tax rate from ${nation.taxRate}% to ${newTaxRate}%`);
-
-    } catch (error) {
-      logger.error('Error changing tax rate:', { error: error as Error });
+      const oldBudget = nation.gdp * (nation.taxRate / 100);
+      const newBudget = updatedNation.budget;
+      const budgetChange = newBudget - oldBudget;
 
       const embed = new EmbedBuilder()
-        .setColor(0xff0000)
-        .setTitle('❌ Error Changing Tax Rate')
-        .setDescription('An error occurred while changing your tax rate. Please try again.')
+        .setColor(budgetChange >= 0 ? 0x00ff00 : 0xff6600)
+        .setTitle('✅ Tax Rate Updated')
+        .setDescription(`Successfully updated tax rate for **${nationName}**`)
+        .addFields(
+          { name: '📊 Previous Tax Rate', value: `${nation.taxRate.toFixed(1)}%`, inline: true },
+          { name: '📈 New Tax Rate', value: `${newTaxRate.toFixed(1)}%`, inline: true },
+          { name: '💰 Budget Impact', value: `${budgetChange >= 0 ? '+' : ''}${formatGDP(budgetChange)}`, inline: true },
+          { name: '💵 New Budget', value: formatGDP(newBudget), inline: true },
+          { name: '⏰ Next Change Available', value: '7 days from now', inline: true }
+        )
+        .setFooter({ text: 'Tax rate changes affect your nation\'s budget immediately' })
         .setTimestamp();
 
-      await interaction.reply({ embeds: [embed], ephemeral: true });
+      await safeReply(interaction, { embeds: [embed] });
+
+      logger.info(`Tax rate updated for ${nationName}`, {
+        user: interaction.user.id,
+        metadata: {
+          nation: nationName,
+          oldRate: nation.taxRate,
+          newRate: newTaxRate,
+          budgetChange
+        }
+      });
+
+    } catch (error) {
+      await handleCommandError(interaction, error as Error, logger, 'set-tax-rate');
     }
   }
 
