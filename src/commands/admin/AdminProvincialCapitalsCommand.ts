@@ -46,7 +46,7 @@ export class AdminProvincialCapitalsCommand implements Command {
             .setAutocomplete(true))
         .addStringOption(option =>
           option.setName('capitals')
-            .setDescription('Comma-separated list of capitals (max 3)')
+            .setDescription('Comma-separated list of capitals')
             .setRequired(true)));
 
   public async execute(interaction: ChatInputCommandInteraction, dbManager: DatabaseManager, logger: Logger): Promise<void> {
@@ -195,16 +195,7 @@ export class AdminProvincialCapitalsCommand implements Command {
       // Parse capitals list
       const capitals = capitalsInput.split(',').map(c => c.trim()).filter(c => c.length > 0);
       
-      if (capitals.length > 3) {
-        const embed = new EmbedBuilder()
-          .setColor(0xff0000)
-          .setTitle('❌ Too Many Capitals')
-          .setDescription('A nation can have at most 3 provincial capitals.')
-          .setTimestamp();
-
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
-        return;
-      }
+      // No limit on number of capitals
 
       const success = dbManager.setProvincialCapitals(nationName, capitals, interaction.user.id);
       

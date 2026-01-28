@@ -2508,9 +2508,7 @@ export class DatabaseManager {
 
   // Provincial capitals management
   public setProvincialCapitals(nationName: string, capitals: string[], setBy: string): boolean {
-    if (capitals.length > 3) {
-      throw new Error('A nation can have at most 3 provincial capitals');
-    }
+    // No limit on number of provincial capitals
 
     // Validate capitals array
     if (!Array.isArray(capitals)) {
@@ -2575,9 +2573,7 @@ export class DatabaseManager {
     }
 
     const currentCapitals = nation.provincialCapitals || [];
-    if (currentCapitals.length >= 3) {
-      throw new Error('A nation can have at most 3 provincial capitals');
-    }
+    // No limit on number of provincial capitals
 
     // Check for duplicates (case-insensitive)
     const capitalExists = currentCapitals.some(c => 

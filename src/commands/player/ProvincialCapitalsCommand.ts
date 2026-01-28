@@ -10,7 +10,7 @@ export class ProvincialCapitalsCommand implements Command {
     .addSubcommand(subcommand =>
       subcommand
         .setName('add')
-        .setDescription('Add a provincial capital (max 3)')
+        .setDescription('Add a provincial capital')
         .addStringOption(option =>
           option.setName('name')
             .setDescription('Name of the provincial capital')
@@ -163,11 +163,9 @@ export class ProvincialCapitalsCommand implements Command {
           `${index + 1}. **${capital}**`
         ).join('\n');
         
-        embed.setDescription(`**Provincial Capitals (${nation.provincialCapitals.length}/3):**\n${capitalsList}`);
+        embed.setDescription(`**Provincial Capitals (${nation.provincialCapitals.length}):**\n${capitalsList}`);
         
-        if (nation.provincialCapitals.length < 3) {
-          embed.setFooter({ text: `You can add ${3 - nation.provincialCapitals.length} more provincial capital${3 - nation.provincialCapitals.length === 1 ? '' : 's'}` });
-        }
+        // No footer needed since there's no limit
       }
 
       await interaction.reply({ embeds: [embed] });
